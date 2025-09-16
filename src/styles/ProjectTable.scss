@@ -1,0 +1,331 @@
+// ProjectTable.scss - Material-UI Custom Styling
+.project-table-container {
+  @apply w-full h-full bg-white overflow-hidden;
+  
+  .MuiCheckbox-root.Mui-checked,
+  .row-checkbox.Mui-checked {
+    background-color: white !important;
+  }
+  .table-row.selected,
+  .table-row.selected td,
+  .table-row.selected .MuiCheckbox-root.Mui-checked {
+    background-color: white !important;
+  }
+  
+  // Material-UI overrides for red theme
+  .MuiTab-root {
+    &.Mui-selected {
+      @apply text-red-600;
+    }
+  }
+  
+  .MuiCheckbox-root {
+    &.Mui-checked {
+      @apply text-red-600 bg-white;
+    }
+  }
+  // Filters row
+  .filters-row {
+    @apply flex items-center justify-between px-4 py-2  border-b border-red-200;
+    
+    .filter-chip {
+      @apply flex items-center gap-2 px-3 py-1 text-red-700 rounded-full text-sm;
+      
+      button {
+        @apply ml-1 text-red-500 hover:text-red-700 font-bold;
+      }
+    }
+    
+    .selection-info {
+      @apply flex items-center gap-3;
+      
+      .selected-count {
+        @apply text-sm text-red-700 font-medium;
+      }
+      
+      .clear-selection {
+        @apply text-sm text-red-600 hover:text-red-800 underline;
+      }
+    }
+  }
+
+  // Layout tabs
+  .layout-tabs {
+    @apply flex border-b border-gray-200 bg-white;
+    
+    .tab-btn {
+      @apply px-6 py-3 text-sm font-medium border-b-2 border-transparent hover:border-red-300 hover:text-red-600 transition-all relative;
+      
+      &.active {
+        @apply text-red-600 border-red-500;
+      }
+      
+      .tab-count {
+        @apply ml-2 px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full text-xs;
+      }
+      
+      &.active .tab-count {
+        @apply text-red-700;
+      }
+    }
+  }
+
+  // Table wrapper
+  .table-wrapper {
+    @apply relative overflow-auto;
+    height: calc(100vh - 200px); // Adjust based on header height
+    
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      @apply w-2 h-2;
+    }
+    
+    &::-webkit-scrollbar-track {
+      @apply bg-gray-100;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      @apply bg-gray-400 rounded;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+      @apply bg-gray-500;
+    }
+  }
+
+  // Table styles
+  .project-table {
+    @apply w-full border-collapse;
+    min-width: 1000px; // Minimum width for horizontal scroll
+    
+    // Fixed header
+    .table-header-fixed {
+      @apply sticky top-0 z-20 bg-white;
+      
+      th {
+        @apply bg-gray-50 border-b border-gray-200 text-left text-sm font-medium text-gray-700 py-3 px-4 relative;
+        
+        .header-content {
+          @apply flex items-center justify-between;
+        }
+        
+        .sort-btn {
+          @apply ml-2 text-gray-400 hover:text-gray-600 transition-colors;
+        }
+        
+        // Column resizer
+        .column-resizer {
+          @apply absolute right-0 top-0 w-1 h-full cursor-col-resize bg-transparent;
+        }
+        
+        &.fixed-column {
+          @apply sticky left-0 z-30 bg-gray-50 shadow-sm;
+        }
+      }
+    }
+    
+    // Table body
+    tbody {
+      .table-row {
+        @apply border-b border-gray-100;
+        
+        &.selected {
+          @apply;
+        }
+        
+        &.main-row {
+          @apply cursor-pointer;
+        }
+        
+        &.version-row {
+          @apply bg-gray-50;
+          
+          &.selected {
+            @apply;
+          }
+        }
+        
+        // Level indentation for nested versions
+        &.level-1 .name-content {
+          @apply pl-6;
+        }
+        
+        &.level-2 .name-content {
+          @apply pl-12;
+        }
+        
+        td {
+          @apply py-3 px-4 text-sm text-gray-900 border-r border-gray-100;
+          
+          &.fixed-column {
+            @apply sticky left-0 z-10 bg-white shadow-sm;
+          }
+          
+          &:last-child {
+            @apply border-r-0;
+          }
+        }
+        
+        &.selected td.fixed-column {
+          @apply ;
+        }
+      }
+    }
+    
+    // Name column content
+    .name-cell {
+      .name-content {
+        @apply flex items-center gap-2;
+        
+        .row-checkbox {
+          @apply w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500;
+        }
+        
+        .expand-btn {
+          @apply p-1 rounded hover:bg-gray-200 transition-colors text-gray-500;
+        }
+        
+        .version-badge {
+          @apply px-2 py-1 text-red-700 text-xs font-medium rounded;
+        }
+        
+        .file-name {
+          @apply font-medium text-gray-900;
+        }
+        
+        .file-count {
+          @apply text-xs text-gray-500 ml-1;
+        }
+      }
+    }
+    
+    // Tags
+    .tags {
+      @apply flex flex-wrap gap-1;
+      
+      .tag {
+        @apply px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded border;
+      }
+    }
+    
+    // Uploaded by
+    .uploaded-by {
+      @apply flex items-center gap-2 text-sm text-gray-700;
+      
+      .user-icon {
+        @apply text-gray-400;
+      }
+    }
+    
+    // Uploaded on
+    .uploaded-on {
+      @apply flex items-center gap-2 text-sm text-gray-700;
+      
+      .clock-icon {
+        @apply text-gray-400;
+      }
+    }
+    
+    // Status and actions
+    .status-actions {
+      @apply flex items-center justify-between;
+      
+      .status-badge {
+        @apply px-2 py-1 text-xs font-medium rounded;
+        
+        &.status-approved {
+          @apply bg-green-100 text-green-700;
+        }
+        
+        &.status-rejected {
+          @apply bg-red-50 text-red-700;
+        }
+        
+        &.status-pending {
+          @apply bg-yellow-100 text-yellow-700;
+        }
+      }
+      
+      .action-buttons {
+        @apply flex items-center gap-1 ml-2;
+        
+        .action-btn {
+          @apply p-1.5 rounded hover:bg-white transition-colors border border-transparent;
+          
+          &.approve-btn {
+            @apply text-green-600 hover:bg-green-50 hover:border-green-200;
+          }
+          
+          &.reject-btn {
+            @apply text-red-600 hover:bg-red-50 hover:border-red-200;
+          }
+          
+          &.download-btn {
+            @apply text-blue-600 hover:bg-blue-50 hover:border-blue-200;
+          }
+          
+          &.more-btn {
+            @apply text-gray-600 hover:bg-gray-50 hover:border-gray-200;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 1024px) {
+  .project-table-container {
+    .table-wrapper {
+      height: calc(100vh - 160px);
+    }
+    
+    .project-table {
+      min-width: 800px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .project-table-container {
+    .table-header {
+      @apply flex-col gap-3 items-start;
+      
+      .header-right {
+        @apply w-full justify-between;
+      }
+    }
+    
+    .layout-tabs {
+      @apply overflow-x-auto;
+      
+      .tab-btn {
+        @apply whitespace-nowrap;
+      }
+    }
+    
+    .project-table {
+      min-width: 700px;
+      
+      th, td {
+        @apply px-2 text-xs;
+      }
+    }
+  }
+}
+
+// Custom animations
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.version-row {
+  animation: slideDown 0.2s ease-out;
+}
