@@ -18,7 +18,7 @@ import {
     TextField
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { DataGridPro, GridActionsCellItem, useGridApiRef,gridRowExpansionStateSelector  } from '@mui/x-data-grid-pro';
+import { DataGridPro, GridActionsCellItem, useGridApiRef } from '@mui/x-data-grid-pro';
 import {
     FilterList,
     MoreVert,
@@ -174,57 +174,77 @@ const ProjectTable = () => {
             headerName: 'Tags',
             width: 180,
             sortable: false, // Tags are not typically sortable
-            renderCell: ({ value }) => (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {value?.map((tag, index) => (
-                        <Chip
-                            key={index}
-                            label={tag}
-                            size="small"
-                            variant="outlined"
-                        />
-                    ))}
-                </Box>
-            )
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: ({ value, row }) => {
+                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
+                return (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                        {value?.map((tag, index) => (
+                            <Chip
+                                key={index}
+                                label={tag}
+                                size="small"
+                                variant="outlined"
+                            />
+                        ))}
+                    </Box>
+                )
+            }
         },
         {
             field: 'uploadedBy',
             headerName: 'Uploaded By',
             width: 220,
-            renderCell: ({ value }) => (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Person fontSize="small" color="disabled" />
-                    <Typography variant="body2">{value}</Typography>
-                </Box>
-            )
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: ({ value, row }) => {
+                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
+                return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', height: '100%' }}>
+                        <Person fontSize="small" color="disabled" />
+                        <Typography variant="body2">{value}</Typography>
+                    </Box>
+                )
+            }
         },
         {
             field: 'uploadedOn',
             headerName: 'Uploaded On',
             width: 220,
-            renderCell: ({ value }) => (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Schedule fontSize="small" color="disabled" />
-                    <Typography variant="body2">{value}</Typography>
-                </Box>
-            )
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: ({ value, row }) => {
+                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
+                return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', height: '100%' }}>
+                        <Schedule fontSize="small" color="disabled" />
+                        <Typography variant="body2">{value}</Typography>
+                    </Box>
+                )
+            }
         },
         {
             field: 'status',
             headerName: 'Status',
             width: 120,
-            renderCell: ({ value }) => {
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: ({ value, row }) => {
+                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
                 const colorMap = {
                     approved: 'success',
                     rejected: 'error',
                     pending: 'warning',
                 };
                 return (
-                    <Chip
-                        label={value}
-                        size="small"
-                        color={colorMap[value?.toLowerCase()] || 'default'}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <Chip
+                            label={value}
+                            size="small"
+                            color={colorMap[value?.toLowerCase()] || 'default'}
+                        />
+                    </Box>
                 );
             }
         },
@@ -234,45 +254,46 @@ const ProjectTable = () => {
             type: 'actions',
             headerName: 'Actions',
             width: 150,
-            getActions: (params) => [
-                <GridActionsCellItem
-                    icon={<Check fontSize="small" />}
-                    label="Approve"
-                    title="Approve"
-                // onClick={...}
-                />,
-                <GridActionsCellItem
-                    icon={<Close fontSize="small" />}
-                    label="Reject"
-                    title="Reject"
-                // onClick={...}
-                />,
-                <GridActionsCellItem
-                    icon={<GetApp fontSize="small" />}
-                    label="Download"
-                    title="Download"
-                // onClick={...}
-                />,
-                <GridActionsCellItem
-                    icon={<MoreVert fontSize="small" />}
-                    label="More"
-                    title="More options"
-                // onClick={...}
-                />,
-            ],
+            align: 'center',
+            headerAlign: 'center',
+            getActions: (params) => {
+                if (params.id === '2d-layout' || params.id === '3d-layout') return [];
+                return [
+                    <GridActionsCellItem
+                        icon={<Check fontSize="small" />}
+                        label="Approve"
+                        title="Approve"
+                    // onClick={...}
+                    />,
+                    <GridActionsCellItem
+                        icon={<Close fontSize="small" />}
+                        label="Reject"
+                        title="Reject"
+                    // onClick={...}
+                    />,
+                    <GridActionsCellItem
+                        icon={<GetApp fontSize="small" />}
+                        label="Download"
+                        title="Download"
+                    // onClick={...}
+                    />,
+                    <GridActionsCellItem
+                        icon={<MoreVert fontSize="small" />}
+                        label="More"
+                        title="More options"
+                    // onClick={...}
+                    />,
+                ]
+            },
         },
     ];
 
     const handleRowClick = (params) => {
-    // 1. Use the official selector to get the expansion state object
-    const expansionState = gridRowExpansionStateSelector(apiRef.current.state);
-
-    // 2. Check the state for the specific row ID
-    const isExpanded = expansionState[params.id] || false;
-
-    // 3. Set the expansion to the opposite state
-    apiRef.current.setRowChildrenExpansion(params.id, !isExpanded);
-};
+        const rowNode = apiRef.current.getRowNode(params.id);
+        if (rowNode) {
+            apiRef.current.setRowChildrenExpansion(params.id, !rowNode.childrenExpanded);
+        }
+    };
 
     const handleTabChange = (event, newValue) => {
         setActiveTab(newValue);
@@ -494,14 +515,13 @@ const ProjectTable = () => {
                     }}
                     getTreeDataPath={(row) => row.path}
                     checkboxSelection
-                    // disableIconOpenInGroupingCol={true}
+                    disableIconOpenInGroupingCol={true}
+                    onRowClick={handleRowClick}
                     // rowSelectionModel={rowSelectionModel}
                     // onRowSelectionModelChange={(newModel) => setRowSelectionModel(newModel)}
                     onSelectionModelChange={(newSelectionModel) => {
                         setRowSelectionModel(newSelectionModel);
                     }}
-                    The prop
-                    disableRowSelectionOnClick
                 />
 
             </Box>
