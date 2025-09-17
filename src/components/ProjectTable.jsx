@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     IconButton,
     Chip,
@@ -15,7 +15,8 @@ import {
     AppBar,
     Drawer,
     Switch,
-    TextField
+    TextField,
+    Checkbox
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { DataGridPro, GridActionsCellItem, useGridApiRef } from '@mui/x-data-grid-pro';
@@ -32,16 +33,13 @@ import {
 } from '@mui/icons-material';
 
 const ProjectTable = () => {
-
-    console.log('--- CHECKING FILE VERSION: THIS IS THE LATEST CODE ---');
-    // Sidebar state
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [tabs, setTabs] = useState([
         { id: 0, name: '2D Layout', active: true },
         { id: 1, name: '3D Layout', active: false }
     ]);
     const [newTabName, setNewTabName] = useState('');
-    const [activeTab, setActiveTab] = useState(0); // 0 for 2D, 1 for 3D
+    const [activeTab, setActiveTab] = useState(0); 
 
     const apiRef = useGridApiRef();
     const [rowSelectionModel, setRowSelectionModel] = useState([]);
@@ -128,7 +126,7 @@ const ProjectTable = () => {
             // 3. Process 'previousVersions' under a synthetic "Previous Versions" group
             if (node.previousVersions && node.previousVersions.length > 0) {
                 const syntheticParentId = `previous-versions-${node.id}`;
-
+                
                 // Add the synthetic "Previous Versions" row, marked as historic
                 flatRows.push({
                     id: syntheticParentId,
@@ -138,7 +136,7 @@ const ProjectTable = () => {
                 });
 
                 // Process the actual previous versions as children, marking them as historic
-                node.previousVersions.forEach(child =>
+                node.previousVersions.forEach(child => 
                     processNode(child, [...parentPath, node.id, syntheticParentId], true)
                 );
             }
@@ -165,46 +163,24 @@ const ProjectTable = () => {
         return processedRows.filter(row => row.path[0] === activeLayoutId);
     }, [processedRows, activeTab]);
 
-    // NECESSARY CHANGE: Define this complete configuration array
+    const selectableRows = useMemo(() => 
+        activeRows.filter(row => !row.isHistoric).map(row => row.id),
+        [activeRows]
+    );
+
+    const selectedCount = rowSelectionModel.filter(id => selectableRows.includes(id)).length;
+    const isAllSelected = selectedCount === selectableRows.length && selectableRows.length > 0;
+    const isIndeterminate = selectedCount > 0 && selectedCount < selectableRows.length;
+
+    const handleSelectAllClick = (event) => {
+        if (event.target.checked) {
+            setRowSelectionModel(selectableRows);
+        } else {
+            setRowSelectionModel([]);
+        }
+    };
+
     const columns = [
-        {
-            field: 'selection',
-            headerName: '',
-            width: 50,
-            sortable: false,
-            renderCell: (params) => {
-                if (params.row.isHistoric) {
-                    return null;
-                }
-                return (
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%', height: '100%' }}>
-                        <Checkbox
-                            checked={rowSelectionModel.includes(params.id)}
-                            onChange={(event) => {
-                                const newSelectionModel = rowSelectionModel.includes(params.id)
-                                    ? rowSelectionModel.filter((id) => id !== params.id)
-                                    : [...rowSelectionModel, params.id];
-                                setRowSelectionModel(newSelectionModel);
-                            }}
-                        />
-                    </Box>
-                );
-            },
-        },
-        // This column's content is now handled by the `groupingColDef` prop 
-        // on DataGridPro when `treeData` is enabled, which combines the data
-        // from this field with the expansion arrows.
-        // {
-        //     field: 'name',
-        //     headerName: 'Name',
-        //     width: 250,
-        //     renderCell: ({ row }) => (
-        //         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        //             {row.version && <Chip label={row.version} size="small" sx={{ backgroundColor: 'grey.200', color: 'text.secondary' }} />}
-        //             <Typography variant="body2">{row.name}</Typography>
-        //         </Box>
-        //     )
-        // },
         {
             field: 'tags',
             headerName: 'Tags',
@@ -556,10 +532,33 @@ const ProjectTable = () => {
                         headerName: 'Name',
                         width: 300,
                         field: 'name', // This is important
+                        renderHeader: (params) => (
+                            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                                <Checkbox
+                                    checked={isAllSelected}
+                                    indeterminate={isIndeterminate}
+                                    onChange={handleSelectAllClick}
+                                />
+                                <Typography variant="subtitle2">Name</Typography>
+                            </Box>
+                        ),
                         renderCell: (params) => (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: params.rowNode.depth * 2, height: '100%' }}>
-                                {params.row.version && <Chip label={params.row.version} size="small" sx={{ backgroundColor: 'grey.200', color: 'text.secondary' }} />}
-                                <Typography variant="body2">{params.row.name}</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', ml: params.rowNode.depth * 2 }}>
+                                {!params.row.isHistoric && (
+                                    <Checkbox
+                                        checked={rowSelectionModel.includes(params.id)}
+                                        onChange={(event) => {
+                                            event.stopPropagation();
+                                            const newSelectionModel = rowSelectionModel.includes(params.id)
+                                                ? rowSelectionModel.filter((id) => id !== params.id)
+                                                : [...rowSelectionModel, params.id];
+                                            setRowSelectionModel(newSelectionModel);
+                                        }}
+                                        onClick={(event) => event.stopPropagation()}
+                                    />
+                                )}
+                                {params.row.version && <Chip label={params.row.version} size="small" sx={{ backgroundColor: 'grey.200', color: 'text.secondary', ml: 1 }} />}
+                                <Typography variant="body2" sx={{ ml: params.row.isHistoric ? 0 : 1 }}>{params.row.name}</Typography>
                             </Box>
                         )
                     }}
@@ -572,8 +571,6 @@ const ProjectTable = () => {
                     }}
                     disableIconOpenInGroupingCol={true}
                     onRowClick={handleRowClick}
-                    // rowSelectionModel={rowSelectionModel}
-                    // onRowSelectionModelChange={(newModel) => setRowSelectionModel(newModel)}
                     onSelectionModelChange={(newSelectionModel) => {
                         setRowSelectionModel(newSelectionModel);
                     }}
