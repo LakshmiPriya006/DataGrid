@@ -112,31 +112,43 @@ const ProjectTable = () => {
     const processedRows = useMemo(() => {
         const flatRows = [];
 
-        // This new recursive function correctly handles parents and children
-        const processNode = (node, parentPath = []) => {
-            // 1. Add the current node (e.g., "2D Layout" or "v3-2d") as a row
+        const processNode = (node, parentPath = [], isHistoric = false) => {
+            // 1. Add the current node
             flatRows.push({
                 ...node,
-                // The path is built from the parent's path plus the node's own ID
                 path: [...parentPath, node.id],
+                isHistoric,
             });
 
-            // 2. If the node has a 'versions' array, process them as children
+            // 2. Process 'versions' as direct children (these are not historic)
             if (node.versions) {
-                node.versions.forEach(child => processNode(child, [...parentPath, node.id]));
+                node.versions.forEach(child => processNode(child, [...parentPath, node.id], false));
             }
 
-            // 3. If the node has 'previousVersions', process them as children
-            if (node.previousVersions) {
-                node.previousVersions.forEach(child => processNode(child, [...parentPath, node.id]));
+            // 3. Process 'previousVersions' under a synthetic "Previous Versions" group
+            if (node.previousVersions && node.previousVersions.length > 0) {
+                const syntheticParentId = `previous-versions-${node.id}`;
+
+                // Add the synthetic "Previous Versions" row, marked as historic
+                flatRows.push({
+                    id: syntheticParentId,
+                    name: 'Previous Versions',
+                    path: [...parentPath, node.id, syntheticParentId],
+                    isHistoric: true,
+                });
+
+                // Process the actual previous versions as children, marking them as historic
+                node.previousVersions.forEach(child =>
+                    processNode(child, [...parentPath, node.id, syntheticParentId], true)
+                );
             }
         };
 
-        // This kicks off the process for each top-level item ("2D Layout", "3D Layout")
+        // This kicks off the process for each top-level item
         Object.keys(mockData).forEach(key => {
             const layout = mockData[key][0];
             if (layout) {
-                processNode(layout); // Start the recursion from the top-level parent
+                processNode(layout); // Initial call with isHistoric = false
             }
         });
 
@@ -155,6 +167,30 @@ const ProjectTable = () => {
 
     // NECESSARY CHANGE: Define this complete configuration array
     const columns = [
+        {
+            field: 'selection',
+            headerName: '',
+            width: 50,
+            sortable: false,
+            renderCell: (params) => {
+                if (params.row.isHistoric) {
+                    return null;
+                }
+                return (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%', height: '100%' }}>
+                        <Checkbox
+                            checked={rowSelectionModel.includes(params.id)}
+                            onChange={(event) => {
+                                const newSelectionModel = rowSelectionModel.includes(params.id)
+                                    ? rowSelectionModel.filter((id) => id !== params.id)
+                                    : [...rowSelectionModel, params.id];
+                                setRowSelectionModel(newSelectionModel);
+                            }}
+                        />
+                    </Box>
+                );
+            },
+        },
         // This column's content is now handled by the `groupingColDef` prop 
         // on DataGridPro when `treeData` is enabled, which combines the data
         // from this field with the expansion arrows.
@@ -177,7 +213,7 @@ const ProjectTable = () => {
             align: 'center',
             headerAlign: 'center',
             renderCell: ({ value, row }) => {
-                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
+                if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 return (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                         {value?.map((tag, index) => (
@@ -199,7 +235,7 @@ const ProjectTable = () => {
             align: 'center',
             headerAlign: 'center',
             renderCell: ({ value, row }) => {
-                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
+                if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 return (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', height: '100%' }}>
                         <Person fontSize="small" color="disabled" />
@@ -215,7 +251,7 @@ const ProjectTable = () => {
             align: 'center',
             headerAlign: 'center',
             renderCell: ({ value, row }) => {
-                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
+                if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 return (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', height: '100%' }}>
                         <Schedule fontSize="small" color="disabled" />
@@ -231,7 +267,7 @@ const ProjectTable = () => {
             align: 'center',
             headerAlign: 'center',
             renderCell: ({ value, row }) => {
-                if (row.id === '2d-layout' || row.id === '3d-layout') return null;
+                if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 const colorMap = {
                     approved: 'success',
                     rejected: 'error',
@@ -257,7 +293,7 @@ const ProjectTable = () => {
             align: 'center',
             headerAlign: 'center',
             getActions: (params) => {
-                if (params.id === '2d-layout' || params.id === '3d-layout') return [];
+                if (params.id === '2d-layout' || params.id === '3d-layout' || params.id.startsWith('previous-versions-')) return [];
                 return [
                     <GridActionsCellItem
                         icon={<Check fontSize="small" />}
@@ -290,8 +326,21 @@ const ProjectTable = () => {
 
     const handleRowClick = (params) => {
         const rowNode = apiRef.current.getRowNode(params.id);
-        if (rowNode) {
-            apiRef.current.setRowChildrenExpansion(params.id, !rowNode.childrenExpanded);
+        if (!rowNode) return;
+
+        const isExpanding = !rowNode.childrenExpanded;
+        apiRef.current.setRowChildrenExpansion(params.id, isExpanding);
+
+        // If we are expanding a row that has previous versions, also expand the synthetic child
+        if (isExpanding) {
+            const rowData = processedRows.find(r => r.id === params.id);
+            if (rowData?.previousVersions?.length > 0) {
+                const syntheticChildId = `previous-versions-${params.id}`;
+                // Use a timeout to ensure the grid can process the first expansion before the second
+                setTimeout(() => {
+                    apiRef.current.setRowChildrenExpansion(syntheticChildId, true);
+                }, 0);
+            }
         }
     };
 
@@ -345,9 +394,9 @@ const ProjectTable = () => {
     };
 
     return (
-        <Box className="project-table-container" sx={{ width: '100%', height: '100%', bgcolor: 'background.paper' }}>
+        <Box className="project-table-container" sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', bgcolor: 'background.paper' }}>
             {/* Header */}
-            <AppBar position="static" color="transparent" elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
+            <AppBar position="static" color="transparent" elevation={0} sx={{ border: 1, borderColor: 'divider', flexShrink: 0 }}>
                 <Toolbar sx={{ justifyContent: 'space-between' }}>
                     <Box>
                         <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
@@ -392,7 +441,7 @@ const ProjectTable = () => {
             </Menu>
 
             {/* Tabs */}
-            <Box sx={{ border: 1, borderColor: 'divider' }}>
+            <Box sx={{ border: 1, borderColor: 'divider', flexShrink: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Tab
                         icon={<MenuIcon />}
@@ -434,7 +483,8 @@ const ProjectTable = () => {
                         p: 1,
                         border: 1,
                         borderColor: 'divider',
-                        opacity: 0.8
+                        opacity: 0.8,
+                        flexShrink: 0
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -507,14 +557,19 @@ const ProjectTable = () => {
                         width: 300,
                         field: 'name', // This is important
                         renderCell: (params) => (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: params.rowNode.depth * 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: params.rowNode.depth * 2, height: '100%' }}>
                                 {params.row.version && <Chip label={params.row.version} size="small" sx={{ backgroundColor: 'grey.200', color: 'text.secondary' }} />}
                                 <Typography variant="body2">{params.row.name}</Typography>
                             </Box>
                         )
                     }}
                     getTreeDataPath={(row) => row.path}
-                    checkboxSelection
+                    initialState={{
+                        expansion: {
+                            '2d-layout': true,
+                            '3d-layout': true,
+                        }
+                    }}
                     disableIconOpenInGroupingCol={true}
                     onRowClick={handleRowClick}
                     // rowSelectionModel={rowSelectionModel}
