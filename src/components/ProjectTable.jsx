@@ -165,32 +165,25 @@ const ProjectTable = () => {
         return processedRows.filter(row => row.path[0] === activeLayoutId);
     }, [processedRows, activeTab]);
 
+    const selectableRows = useMemo(() =>
+        activeRows.filter(row => !row.isHistoric).map(row => row.id),
+        [activeRows]
+    );
+
+    const selectedCount = rowSelectionModel.filter(id => selectableRows.includes(id)).length;
+    const isAllSelected = selectedCount === selectableRows.length && selectableRows.length > 0;
+    const isIndeterminate = selectedCount > 0 && selectedCount < selectableRows.length;
+
+    const handleSelectAllClick = (event) => {
+        if (event.target.checked) {
+            setRowSelectionModel(selectableRows);
+        } else {
+            setRowSelectionModel([]);
+        }
+    };
+
     // NECESSARY CHANGE: Define this complete configuration array
     const columns = [
-        {
-            field: 'selection',
-            headerName: '',
-            width: 50,
-            sortable: false,
-            renderCell: (params) => {
-                if (params.row.isHistoric) {
-                    return null;
-                }
-                return (
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%', height: '100%' }}>
-                        <Checkbox
-                            checked={rowSelectionModel.includes(params.id)}
-                            onChange={(event) => {
-                                const newSelectionModel = rowSelectionModel.includes(params.id)
-                                    ? rowSelectionModel.filter((id) => id !== params.id)
-                                    : [...rowSelectionModel, params.id];
-                                setRowSelectionModel(newSelectionModel);
-                            }}
-                        />
-                    </Box>
-                );
-            },
-        },
         // This column's content is now handled by the `groupingColDef` prop 
         // on DataGridPro when `treeData` is enabled, which combines the data
         // from this field with the expansion arrows.
@@ -556,10 +549,33 @@ const ProjectTable = () => {
                         headerName: 'Name',
                         width: 300,
                         field: 'name', // This is important
+                        renderHeader: (params) => (
+                            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                                <Checkbox
+                                    checked={isAllSelected}
+                                    indeterminate={isIndeterminate}
+                                    onChange={handleSelectAllClick}
+                                />
+                                <Typography variant="subtitle2">Name</Typography>
+                            </Box>
+                        ),
                         renderCell: (params) => (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: params.rowNode.depth * 2, height: '100%' }}>
-                                {params.row.version && <Chip label={params.row.version} size="small" sx={{ backgroundColor: 'grey.200', color: 'text.secondary' }} />}
-                                <Typography variant="body2">{params.row.name}</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', ml: params.rowNode.depth * 2 }}>
+                                {!params.row.isHistoric && (
+                                    <Checkbox
+                                        checked={rowSelectionModel.includes(params.id)}
+                                        onChange={(event) => {
+                                            event.stopPropagation();
+                                            const newSelectionModel = rowSelectionModel.includes(params.id)
+                                                ? rowSelectionModel.filter((id) => id !== params.id)
+                                                : [...rowSelectionModel, params.id];
+                                            setRowSelectionModel(newSelectionModel);
+                                        }}
+                                        onClick={(event) => event.stopPropagation()}
+                                    />
+                                )}
+                                {params.row.version && <Chip label={params.row.version} size="small" sx={{ backgroundColor: 'grey.200', color: 'text.secondary', ml: 1 }} />}
+                                <Typography variant="body2" sx={{ ml: params.row.isHistoric ? 0 : 1 }}>{params.row.name}</Typography>
                             </Box>
                         )
                     }}
