@@ -97,6 +97,12 @@
   .project-table {
     @apply w-full border-collapse;
     min-width: 1000px; // Minimum width for horizontal scroll
+
+      // Left align for DataGridPro cells
+      .align-left {
+        text-align: left !important;
+        justify-content: flex-start !important;
+      }
     
     // Fixed header
     .table-header-fixed {

@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
 import {
     IconButton,
     Chip,
@@ -183,11 +186,12 @@ const ProjectTable = () => {
     const columns = [
         {
             field: 'tags',
-            headerName: 'Tags',
-            width: 180,
-            sortable: false, // Tags are not typically sortable
-            align: 'center',
-            headerAlign: 'center',
+                headerName: 'Tags',
+                width: 180,
+                sortable: false, // Tags are not typically sortable
+                align: 'left',
+                headerAlign: 'left',
+                cellClassName: 'align-left',
             renderCell: ({ value, row }) => {
                 if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 return (
@@ -208,8 +212,9 @@ const ProjectTable = () => {
             field: 'uploadedBy',
             headerName: 'Uploaded By',
             width: 220,
-            align: 'center',
-            headerAlign: 'center',
+                align: 'left',
+                headerAlign: 'left',
+                cellClassName: 'align-left',
             renderCell: ({ value, row }) => {
                 if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 return (
@@ -224,8 +229,9 @@ const ProjectTable = () => {
             field: 'uploadedOn',
             headerName: 'Uploaded On',
             width: 220,
-            align: 'center',
-            headerAlign: 'center',
+                align: 'left',
+                headerAlign: 'left',
+                cellClassName: 'align-left',
             renderCell: ({ value, row }) => {
                 if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 return (
@@ -240,8 +246,9 @@ const ProjectTable = () => {
             field: 'status',
             headerName: 'Status',
             width: 120,
-            align: 'center',
-            headerAlign: 'center',
+                align: 'left',
+                headerAlign: 'left',
+                cellClassName: 'align-left',
             renderCell: ({ value, row }) => {
                 if (row.id === '2d-layout' || row.id === '3d-layout' || row.id.startsWith('previous-versions-')) return null;
                 const colorMap = {
@@ -266,8 +273,9 @@ const ProjectTable = () => {
             type: 'actions',
             headerName: 'Actions',
             width: 150,
-            align: 'center',
-            headerAlign: 'center',
+                align: 'left',
+                headerAlign: 'left',
+                cellClassName: 'align-left',
             getActions: (params) => {
                 if (params.id === '2d-layout' || params.id === '3d-layout' || params.id.startsWith('previous-versions-')) return [];
                 return [
@@ -327,7 +335,7 @@ const ProjectTable = () => {
     const handleSidebarClose = () => setSidebarOpen(false);
     const handleToggleTab = (id) => {
         setTabs(tabs.map(tab => ({ ...tab, active: tab.id === id })));
-        setActiveTab(id);
+        setActiveTab(id); // <-- This ensures the main tabs section highlights the tab
     };
     const handleEditTab = (id) => {
         // Implement edit logic (e.g., open input for renaming)
@@ -354,6 +362,23 @@ const ProjectTable = () => {
         }
     };
 
+    // Drag and drop handlers for tabs
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (active.id !== over?.id) {
+            const oldIndex = tabs.findIndex(tab => tab.id === active.id);
+            const newIndex = tabs.findIndex(tab => tab.id === over.id);
+            setTabs(arrayMove(tabs, oldIndex, newIndex));
+        }
+    };
+
+    // SortableTab component for each tab row
+    function SortableTab({ tab, children }) {
+        const { attributes, listeners, setNodeRef, isDragging } = useSortable({ id: tab.id });
+        // children is a function that receives drag props for the handle
+        return children({ dragHandleProps: { ref: setNodeRef, ...attributes, ...listeners, style: { cursor: 'grab', opacity: isDragging ? 0.5 : 1 } } });
+    }
+
 
 
     const handleFilterMenuOpen = (event) => {
@@ -370,8 +395,7 @@ const ProjectTable = () => {
     };
 
     return (
-        <Box className="project-table-container" sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', bgcolor: 'background.paper' }}>
-            {/* Header */}
+        <Box className="project-table-contain        npm install react-beautiful-dnd        npm install react-beautiful-dnder" sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', bgcolor: 'background.paper' }}>
             <AppBar position="static" color="transparent" elevation={0} sx={{ border: 1, borderColor: 'divider', flexShrink: 0 }}>
                 <Toolbar sx={{ justifyContent: 'space-between' }}>
                     <Box>
@@ -493,19 +517,30 @@ const ProjectTable = () => {
                 </Box>
             )}
 
-            {/* Sidebar Drawer */}
+            {/* Sidebar Drawer with drag-and-drop */}
             <Drawer anchor="right" open={sidebarOpen} onClose={handleSidebarClose}>
                 <Box sx={{ width: 340, p: 2 }}>
                     <Typography variant="h6" sx={{ mb: 2 }}>Sections</Typography>
-                    {tabs.map(tab => (
-                        <Box key={tab.id} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <MenuIcon sx={{ mr: 1, color: 'grey.500' }} />
-                            <Typography sx={{ flex: 1 }}>{tab.name}</Typography>
-                            <Switch checked={tab.active} onChange={() => handleToggleTab(tab.id)} color="primary" />
-                            <IconButton size="small" onClick={() => handleEditTab(tab.id)}><EditIcon sx={{ color: 'grey.700' }} /></IconButton>
-                            <IconButton size="small" onClick={() => handleDeleteTab(tab.id)}><DeleteIcon sx={{ color: 'error.main' }} /></IconButton>
-                        </Box>
-                    ))}
+                    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={tabs.map(tab => tab.id)} strategy={verticalListSortingStrategy}>
+                            {tabs.map(tab => (
+                                <SortableTab key={tab.id} tab={tab}>
+                                    {({ dragHandleProps }) => (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                            {/* Drag handle only on MenuIcon */}
+                                            <span {...dragHandleProps}>
+                                                <MenuIcon sx={{ mr: 1, color: 'grey.500' }} />
+                                            </span>
+                                            <Typography sx={{ flex: 1 }}>{tab.name}</Typography>
+                                            <Switch checked={tab.active} onChange={() => handleToggleTab(tab.id)} color="primary" />
+                                            <IconButton size="small" onClick={() => handleEditTab(tab.id)}><EditIcon sx={{ color: 'grey.700' }} /></IconButton>
+                                            <IconButton size="small" onClick={() => handleDeleteTab(tab.id)}><DeleteIcon sx={{ color: 'error.main' }} /></IconButton>
+                                        </Box>
+                                    )}
+                                </SortableTab>
+                            ))}
+                        </SortableContext>
+                    </DndContext>
                     <TextField
                         variant="outlined"
                         size="small"
@@ -515,7 +550,6 @@ const ProjectTable = () => {
                         sx={{ mt: 2, width: '100%' }}
                         onKeyDown={e => { if (e.key === 'Enter') handleAddTab(); }}
                     />
-                    <Button variant="contained" color="primary" sx={{ mt: 1, width: '100%' }} onClick={handleAddTab}>Add</Button>
                 </Box>
             </Drawer>
 
@@ -542,8 +576,13 @@ const ProjectTable = () => {
                                 <Typography variant="subtitle2">Name</Typography>
                             </Box>
                         ),
-                        renderCell: (params) => (
-                            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', ml: params.rowNode.depth * 2 }}>
+                        renderCell: (params) => {
+                          let leftMargin = 0;
+                          if (params.row.isHistoric) {
+                            leftMargin = 6;
+                          }
+                          return (
+                            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', ml: leftMargin }}>
                                 {!params.row.isHistoric && (
                                     <Checkbox
                                         checked={rowSelectionModel.includes(params.id)}
@@ -560,7 +599,8 @@ const ProjectTable = () => {
                                 {params.row.version && <Chip label={params.row.version} size="small" sx={{ backgroundColor: 'grey.200', color: 'text.secondary', ml: 1 }} />}
                                 <Typography variant="body2" sx={{ ml: params.row.isHistoric ? 0 : 1 }}>{params.row.name}</Typography>
                             </Box>
-                        )
+                          );
+                        }
                     }}
                     getTreeDataPath={(row) => row.path}
                     initialState={{
